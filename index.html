@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoCall Clone + Blog</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-video"></i>
+                <span>V-Call <span class="blog-tag">Live</span></span>
+            </div>
+            <div class="header-info">
+                <button id="copy-link" class="btn-secondary accent">
+                    <i class="fas fa-link"></i> Copy Invite Link
+                </button>
+                <span id="current-time">12:00 PM</span>
+                <button id="toggle-blog" class="btn-secondary">
+                    <i class="fas fa-newspaper"></i> Blog
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Video Grid Area -->
+            <section class="video-grid-container">
+                <div id="video-grid" class="video-grid">
+                    <!-- User Video -->
+                    <div class="video-box local-video" id="local-video-container">
+                        <video id="local-video" autoplay playsinline muted></video>
+                        <div class="video-label">You</div>
+                    </div>
+                    
+                    <!-- Remote videos will be injected here dynamically -->
+                </div>
+            </section>
+
+            <!-- Blog Sidebar (Hidden by default) -->
+            <aside id="blog-sidebar" class="blog-sidebar">
+                <div class="sidebar-header">
+                    <h3>Community Blog</h3>
+                    <button id="close-blog" class="btn-icon"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="blog-posts">
+                    <article class="blog-card">
+                        <div class="blog-date">March 6, 2026</div>
+                        <h4>Optimizing Video Quality</h4>
+                        <p>Learn how to get the best out of your WebRTC connection...</p>
+                        <a href="#">Read More</a>
+                    </article>
+                    <article class="blog-card">
+                        <div class="blog-date">March 5, 2026</div>
+                        <h4>Privacy & Security</h4>
+                        <p>Our commitment to end-to-end encryption in every call...</p>
+                        <a href="#">Read More</a>
+                    </article>
+                    <article class="blog-card">
+                        <div class="blog-date">March 4, 2026</div>
+                        <h4>New Backgrounds!</h4>
+                        <p>Check out our latest virtual background collection for your meetings.</p>
+                        <a href="#">Read More</a>
+                    </article>
+                </div>
+            </aside>
+
+            <!-- Chat Sidebar -->
+            <aside id="chat-sidebar" class="chat-sidebar">
+                <div class="sidebar-header">
+                    <h3>In-call messages</h3>
+                    <button id="close-chat" class="btn-icon"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                    <!-- Messages will appear here -->
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Send a message to everyone">
+                    <button id="send-chat"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Controls Bar -->
+        <footer>
+            <div class="meeting-id">Meeting ID: abc-defg-hij</div>
+            <div class="controls">
+                <button id="mute-btn" class="control-btn" title="Mute/Unmute">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="camera-btn" class="control-btn" title="Start/Stop Camera">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button id="screen-share-btn" class="control-btn" title="Share Screen">
+                    <i class="fas fa-desktop"></i>
+                </button>
+                <button class="control-btn btn-danger" title="End Call">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+                <button id="chat-toggle-btn" class="control-btn" title="Chat">
+                    <i class="fas fa-comment"></i>
+                </button>
+                <button class="control-btn" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+            <div class="user-actions">
+                <button class="btn-icon"><i class="fas fa-info-circle"></i></button>
+                <button class="btn-icon"><i class="fas fa-users"></i></button>
+            </div>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
