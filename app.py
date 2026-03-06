@@ -13,14 +13,19 @@ def index():
 
 @socketio.on('join-room')
 def on_join(data):
-    room = data['roomId']
-    peer_id = data['peerId']
+    room = data.get('roomId')
+    peer_id = data.get('peerId')
     
+    if not room or not peer_id:
+        print(f"Error: Invalid join-room data received: {data}")
+        return
+
     join_room(room)
     print(f"User {peer_id} joined room {room}")
     
     # Broadcast to everyone in the room (except the sender) that a new user joined
     emit('user-connected', peer_id, to=room, include_self=False)
+    print(f"Signaled 'user-connected' for {peer_id} to room {room}")
 
 @socketio.on('send-message')
 def on_message(data):

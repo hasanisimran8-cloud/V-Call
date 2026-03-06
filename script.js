@@ -16,44 +16,56 @@ const copyLinkBtn = document.getElementById('copy-link');
 const blogSidebar = document.getElementById('blog-sidebar');
 const meetingIdDisplay = document.querySelector('.meeting-id');
 
-// 1. Get or create Room ID from URL hash
-let roomId = window.location.hash.substring(1);
+// 1. Get or create Room ID from URL query parameters
+const urlParams = new URLSearchParams(window.location.search);
+let roomId = urlParams.get('room');
+
 if (!roomId) {
+    // Generate a random ID if not present
     roomId = Math.random().toString(36).substring(2, 11);
-    window.location.hash = roomId;
+    // Redirect to the URL with the room parameter to ensure it's in the browser history
+    urlParams.set('room', roomId);
+    window.location.search = urlParams.toString();
 }
+
 meetingIdDisplay.textContent = `Meeting ID: ${roomId}`;
+console.log('Room ID initialized:', roomId);
 
 // 2. Initialize Media and Peer Connections
 async function startApp() {
     try {
+        console.log('Requesting media devices...');
         // Get media stream (Camera & Mic)
         localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true
         });
         localVideo.srcObject = localStream;
+        console.log('Local stream obtained.');
 
         // Initialize PeerJS (Uses public cloud server for WebRTC handshakes)
         peer = new Peer(); 
 
         peer.on('open', id => {
-            console.log('My peer ID is: ' + id);
+            console.log('My PeerJS ID is: ' + id);
             // Tell the Python backend we joined this specific room
+            console.log(`Joining room: ${roomId} with peer ID: ${id}`);
             socket.emit('join-room', { roomId: roomId, peerId: id });
         });
 
         // Answer incoming calls
         peer.on('call', call => {
-            console.log('Incoming call from', call.peer);
+            console.log('Receiving call from:', call.peer);
             call.answer(localStream); // Answer with our stream
             
             const video = document.createElement('video');
             call.on('stream', userVideoStream => {
+                console.log('Receiving remote stream from call');
                 addVideoStream(video, userVideoStream, call.peer);
             });
             
             call.on('close', () => {
+                console.log('Call closed');
                 if (video.parentElement) video.parentElement.remove();
             });
             
@@ -62,16 +74,17 @@ async function startApp() {
 
         // Listen for new users from the Python backend
         socket.on('user-connected', peerId => {
-            console.log('Backend signaled new user joined. Calling:', peerId);
+            console.log('New user detected in room:', peerId);
             // Wait slightly to ensure the other peer is fully ready to accept calls
             setTimeout(() => {
+                console.log('Initiating call to:', peerId);
                 connectToNewUser(peerId, localStream);
             }, 1000);
         });
 
     } catch (err) {
-        console.error('Failed to get local stream', err);
-        alert('Could not access camera or microphone. Please allow permissions.');
+        console.error('Initialization error:', err);
+        alert('Could not access camera or microphone. Please ensure you have granted permissions and are using HTTPS or localhost.');
     }
 }
 
@@ -81,10 +94,12 @@ function connectToNewUser(peerId, stream) {
     const video = document.createElement('video');
     
     call.on('stream', userVideoStream => {
+        console.log('Connected to new user stream:', peerId);
         addVideoStream(video, userVideoStream, peerId);
     });
     
     call.on('close', () => {
+        console.log('Connection to user closed:', peerId);
         if (video.parentElement) video.parentElement.remove();
     });
 
