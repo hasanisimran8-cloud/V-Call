@@ -23,49 +23,58 @@ let roomId = urlParams.get('room');
 if (!roomId) {
     // Generate a random ID if not present
     roomId = Math.random().toString(36).substring(2, 11);
-    // Redirect to the URL with the room parameter to ensure it's in the browser history
+    // Update the URL without reloading the page
     urlParams.set('room', roomId);
-    window.location.search = urlParams.toString();
+    const newRelativePathQuery = window.location.pathname + '?' + urlParams.toString();
+    history.replaceState(null, '', newRelativePathQuery);
 }
 
 meetingIdDisplay.textContent = `Meeting ID: ${roomId}`;
-console.log('Room ID initialized:', roomId);
+console.log('Final Room ID:', roomId);
 
 // 2. Initialize Media and Peer Connections
 async function startApp() {
     try {
-        console.log('Requesting media devices...');
-        // Get media stream (Camera & Mic)
+        console.log('Step 1: Requesting camera/mic...');
         localStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true
         });
         localVideo.srcObject = localStream;
-        console.log('Local stream obtained.');
+        console.log('Step 2: Local stream active.');
 
-        // Initialize PeerJS (Uses public cloud server for WebRTC handshakes)
-        peer = new Peer(); 
+        // Initialize PeerJS with explicit configuration to help with connectivity
+        // Using default PeerJS cloud server
+        peer = new Peer(undefined, {
+            debug: 2
+        }); 
 
         peer.on('open', id => {
-            console.log('My PeerJS ID is: ' + id);
-            // Tell the Python backend we joined this specific room
-            console.log(`Joining room: ${roomId} with peer ID: ${id}`);
+            console.log('Step 3: PeerJS ID is: ' + id);
+            console.log(`Step 4: Joining room signaling: ${roomId}`);
             socket.emit('join-room', { roomId: roomId, peerId: id });
+        });
+
+        peer.on('error', err => {
+            console.error('PeerJS Error:', err);
+            if(err.type === 'peer-unavailable') {
+                console.warn('Peer was unavailable, they might have disconnected.');
+            }
         });
 
         // Answer incoming calls
         peer.on('call', call => {
-            console.log('Receiving call from:', call.peer);
-            call.answer(localStream); // Answer with our stream
+            console.log('Inbound call from peer:', call.peer);
+            call.answer(localStream); 
             
             const video = document.createElement('video');
             call.on('stream', userVideoStream => {
-                console.log('Receiving remote stream from call');
+                console.log('Receiving remote stream from caller:', call.peer);
                 addVideoStream(video, userVideoStream, call.peer);
             });
             
             call.on('close', () => {
-                console.log('Call closed');
+                console.log('Remote user closed call:', call.peer);
                 if (video.parentElement) video.parentElement.remove();
             });
             
@@ -74,32 +83,37 @@ async function startApp() {
 
         // Listen for new users from the Python backend
         socket.on('user-connected', peerId => {
-            console.log('New user detected in room:', peerId);
-            // Wait slightly to ensure the other peer is fully ready to accept calls
+            console.log('Socket signaled new user joined room:', peerId);
+            // Wait slightly to ensure the other peer is fully ready
             setTimeout(() => {
-                console.log('Initiating call to:', peerId);
+                console.log('Attempting to call new user:', peerId);
                 connectToNewUser(peerId, localStream);
-            }, 1000);
+            }, 1500);
         });
 
     } catch (err) {
-        console.error('Initialization error:', err);
-        alert('Could not access camera or microphone. Please ensure you have granted permissions and are using HTTPS or localhost.');
+        console.error('Failed to start app:', err);
+        if (err.name === 'NotAllowedError') {
+            alert('Camera/Mic access denied. Please allow permissions in your browser settings.');
+        } else {
+            alert('Could not start video chat. Ensure you are on HTTPS or localhost.');
+        }
     }
 }
 
 // 3. Connect to a new user when backend signals they joined
 function connectToNewUser(peerId, stream) {
+    console.log('Initializing WebRTC call to:', peerId);
     const call = peer.call(peerId, stream);
     const video = document.createElement('video');
     
     call.on('stream', userVideoStream => {
-        console.log('Connected to new user stream:', peerId);
+        console.log('Connected! Receiving remote stream from:', peerId);
         addVideoStream(video, userVideoStream, peerId);
     });
     
     call.on('close', () => {
-        console.log('Connection to user closed:', peerId);
+        console.log('Call ended with:', peerId);
         if (video.parentElement) video.parentElement.remove();
     });
 
